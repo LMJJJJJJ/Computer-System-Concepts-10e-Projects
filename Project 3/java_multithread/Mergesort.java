@@ -1,16 +1,16 @@
 import java.util.concurrent.*;
 import java.util.ArrayList;
 
-public class Quicksort extends RecursiveAction{
+public class Mergesort extends RecursiveAction{
 
-	static final int SIZE = 10;
-    static final int THRESHOLD = 2;
+	static final int SIZE = 20;
+    static final int THRESHOLD = 4;
 
     private int start;
     private int end;
     private int[] array;
 
-	public Quicksort(int start, int end, int[] array) {
+	public Mergesort(int start, int end, int[] array) {
         this.start = start;
         this.end = end;
         this.array = array;
@@ -18,7 +18,6 @@ public class Quicksort extends RecursiveAction{
 
 
 	protected void compute(){
-        if (end - start <= 0) return;
 		if (end - start < THRESHOLD) {
 			int tmp;
             for (int i = start; i < end; i++){
@@ -32,27 +31,36 @@ public class Quicksort extends RecursiveAction{
             }
         }
         else {
-            int pivot = array[start];
-            int p_low = start, p_high = end;
-            do {
-                while (p_low < p_high && array[p_high] >= pivot) p_high --;
-                if (p_low < p_high) {
-                    array[p_low] = array[p_high];
-                    p_low ++;
-                }
-                while (p_low < p_high && array[p_low] <= pivot) p_low ++;
-                if (p_low < p_high) {
-                    array[p_high] = array[p_low];
-                    p_high --;
-                }
-            } while (p_low != p_high);
-            array[p_low] = pivot;
-        	Quicksort leftTask = new Quicksort(start, p_low - 1, array);
-        	Quicksort rightTask = new Quicksort(p_low + 1, end, array);
+        	int mid = (start + end) / 2;
+        	Mergesort leftTask = new Mergesort(start, mid, array);
+        	Mergesort rightTask = new Mergesort(mid + 1, end, array);
         	leftTask.fork();
         	rightTask.fork();
         	leftTask.join();
         	rightTask.join();
+        	ArrayList<Integer> tmp = new ArrayList<Integer>();
+        	int p_left = start, p_right = mid + 1;
+        	while (p_left <= mid && p_right <= end){
+        		if (array[p_left] < array[p_right]){
+        			tmp.add(array[p_left]);
+        			p_left += 1;
+        		}
+        		else {
+        			tmp.add(array[p_right]);
+        			p_right += 1;
+        		}
+        	}
+        	while (p_left <= mid){
+        		tmp.add(array[p_left]);
+        		p_left += 1;
+        	}
+        	while (p_right <= end){
+        		tmp.add(array[p_right]);
+        		p_right += 1;
+        	}
+        	for (int i = 0; i < tmp.size(); i++){
+        		array[i + start] = tmp.get(i);
+        	}
         }
 	}
 
@@ -74,7 +82,7 @@ public class Quicksort extends RecursiveAction{
 		System.out.println("");
 		
 		// use fork-join parallelism to sum the array
-		Quicksort task = new Quicksort(0, SIZE-1, array);
+		Mergesort task = new Mergesort(0, SIZE-1, array);
 
 		pool.invoke(task);
 

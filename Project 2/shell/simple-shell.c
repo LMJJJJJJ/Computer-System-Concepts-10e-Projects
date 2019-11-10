@@ -13,11 +13,13 @@ char *args[MAX_LINE/2 + 1]; /* command line (of 80) has max of 40 arguments */
 int i = 0;
 int should_run = 1;
 char cmd[MAX_LINE];
+char word[MAX_LINE];
 char end;
 int ampersand = 0;
 int out_enable = 0;
 int in_enable = 0;
 int pipe_enable = 0;
+// int is_empty = 0;
 char out_file[MAX_LINE];
 char in_file[MAX_LINE];
 
@@ -73,7 +75,10 @@ void exec_normal(){
         printf("fork error!\n");
     }
     else if (pid == 0) { // child process
-        if (execvp(args[0], args) == -1) perror("osh");
+        if (execvp(args[0], args) == -1){
+            perror("osh");
+            exit(0);
+        }
     }
     else { // parent process
         if (! ampersand){
@@ -93,7 +98,7 @@ void exec_redirect(){
     }
     else if (pid == 0) { // child process
         if (out_enable && !in_enable){
-            int fd = open(out_file, O_CREAT|O_APPEND|O_RDWR, 0666);
+            int fd = open(out_file, O_CREAT|O_RDWR, 0666);
             if(fd < 0){
                 printf("open error!\n");
             }
@@ -102,7 +107,7 @@ void exec_redirect(){
             close(fd);
         }
         else if (in_enable && !out_enable){
-            int fd = open(in_file, O_CREAT|O_APPEND|O_RDWR, 0666);
+            int fd = open(in_file, O_CREAT|O_RDWR, 0666);
             if(fd < 0){
                 printf("open error!\n");
             }
@@ -111,11 +116,11 @@ void exec_redirect(){
             close(fd);
         }
         else { // in_enable && out_enable
-            int out_fd = open(out_file, O_CREAT|O_APPEND|O_RDWR, 0666);
+            int out_fd = open(out_file, O_CREAT|O_RDWR, 0666);
             if(out_fd < 0){
                 printf("open error!\n");
             }
-            int in_fd = open(in_file, O_CREAT|O_APPEND|O_RDWR, 0666);
+            int in_fd = open(in_file, O_CREAT|O_RDWR, 0666);
             if(in_fd < 0){
                 printf("open error!\n");
             }
@@ -200,14 +205,30 @@ int main(void){
         printf("osh > ");
         fflush(stdout);
         int first_time = 1;
-        // read and parse the commands
+        fgets(cmd, MAX_LINE, stdin);
+        cmd[strlen(cmd)-1] = '\0';
+        char *cmdremain = cmd;
+        char *word;
+        
+        word = strsep(&cmdremain, " ");
+        if (strlen(word) == 0) continue;
         do {
-            // the 'end' is used to detect the enter
-            // if just scanf("%s", cmd), there will be a bug
-            scanf("%s%c", cmd, &end);
             if (first_time){
-                if (strcmp(cmd, "!!") == 0) {
-                    if (i == 0) printf("No commands in history!\n");
+                if (strcmp(word, "!!") == 0) {
+                    if (i == 0) {
+                        printf("No commands in history!\n");
+                        break;
+                    }
+                    for (int j = 0; j < i; j += 1){
+                        printf("%s ", args[j]);
+                    }
+                    if (in_enable){
+                        printf("< %s", in_file);
+                    }
+                    if (out_enable){
+                        printf("> %s", out_file);
+                    }
+                    printf("\n");
                     break;
                 }
                 else {
@@ -215,37 +236,43 @@ int main(void){
                     first_time = 0;
                 }
             }
-            if (strcmp(cmd, "exit") == 0) return 0;
-            if (strcmp(cmd, "help") == 0) {
+            if (strcmp(word, "exit") == 0) return 0;
+            if (strcmp(word, "help") == 0) {
                 help();
                 break;
             }
-            if (strcmp(cmd, "&") == 0) {
+            if (strcmp(word, "&") == 0) {
                 ampersand = 1;
                 break;
             }
-            if (strcmp(cmd, "<") == 0){
+            if (strcmp(word, "<") == 0){
                 in_enable = 1;
-                scanf("%s%c", in_file, &end);
+                char *p;
+                p = strsep(&cmdremain, " ");
+                strcpy(in_file, p);
                 continue;
             }
-            if (strcmp(cmd, ">") == 0){
+            if (strcmp(word, ">") == 0){
                 out_enable = 1;
-                scanf("%s%c", out_file, &end);
+                char *p;
+                p = strsep(&cmdremain, " ");
+                strcpy(out_file, p);
                 continue;
             }
-            if (strcmp(cmd, "|") == 0){
+            if (strcmp(word, "|") == 0){
                 pipe_enable = 1;
             }
 
-            args[i] = (char*) malloc(sizeof(char) * (strlen(cmd) + 1));
-            strcpy(args[i], cmd);
+            args[i] = (char*) malloc(sizeof(char) * (strlen(word) + 1));
+            strcpy(args[i], word);
             i += 1;
             // printf("%d %s\n", i, args[i-1]); // for debugging
 
-        } while(end != '\n');
+            
+        } while (word = strsep(&cmdremain, " "));
 
         args[i] = NULL;
+
 
         if (out_enable == 0 && in_enable == 0 && pipe_enable == 0) exec_normal();
         else if (out_enable == 1 || in_enable == 1) exec_redirect();

@@ -59,9 +59,9 @@ void *mergesort(void *param) {
 	pthread_attr_t left_attr, right_attr;
 	pthread_attr_init(&left_attr);
 	pthread_create(&left_tid, &left_attr, mergesort, (void*) &left_param);
-	pthread_join(left_tid, NULL);
 	pthread_attr_init(&right_attr);
 	pthread_create(&right_tid, &right_attr, mergesort, (void*) &right_param);
+	pthread_join(left_tid, NULL);
 	pthread_join(right_tid, NULL);
 	int *tmp = (int*) malloc(sizeof(int) * (right - left + 1));
 	int p_left = left, p_right = mid + 1, p_tmp = 0;
