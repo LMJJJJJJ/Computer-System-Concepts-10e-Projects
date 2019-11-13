@@ -1,0 +1,15 @@
+These files support the POSIX implementation of the producer-consumer problem.
+
+Source files:
+
+- buffer.h (header file containing function prototypes of buffer)
+
+- buffer.c (implementation of the buffer, including mutex and semaphore)
+
+- main.c 
+
+Makefile
+
+To run the make file, enter "make"
+
+To run the example program, enter "./example"
