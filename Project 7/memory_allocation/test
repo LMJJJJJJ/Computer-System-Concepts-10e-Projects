@@ -1,0 +1,11 @@
+RQ P0 200 F -- test first fit
+RQ P1 100 F
+RQ P2 400 F
+RQ P3 300 F
+STAT -- all full
+RL P1 -- test release
+RL P3 -- test release
+RQ P5 50 W -- test worst fit
+RL P2 -- test release and merge
+RQ P6 200 B -- test best fit
+C -- test compact
