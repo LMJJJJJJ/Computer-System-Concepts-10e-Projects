@@ -1,9 +1,15 @@
+./main 10 5 7
 RQ 0 0 1 0
 RQ 1 2 0 0
 RQ 2 3 0 2
 RQ 3 2 1 1
 RQ 4 0 0 2
 *
+RL 4 0 0 3 -- Fail (exceed allocation)
+RL 4 0 0 2 -- Success
+*
+RQ 4 0 0 2
 RQ 1 1 0 2
+*
 RQ 0 0 2 0 -- UNSAFE (example in textbook)
 RQ 3 2 2 0 -- Succeed MAX
