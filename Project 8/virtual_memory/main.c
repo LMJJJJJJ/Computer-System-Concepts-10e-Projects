@@ -15,33 +15,28 @@
 #define MAX_FILENAME 20
 #define MAX_LINE 10
 #define VM_SIZE 65536
-#define MEM_SIZE 32768 // Modified here! The memory is smaller!
+#define MEM_SIZE 65536
 #define N_TLB_ENTRY 16
 #define N_PAGE_TABLE_ENTRY 256
 #define PAGE_FRAME_SIZE 256
-#define N_FRAME 128 // Modified here! The memory is smaller!
 
-int TLB[N_TLB_ENTRY][3]; // add a valid-invalid bit
+int TLB[N_TLB_ENTRY][2];
 int PAGE_TABLE[N_PAGE_TABLE_ENTRY]; // page number -> frame number
-int FRAME_TO_PAGE[N_FRAME]; // to indicate whether an entry in the page table is valid
-                            // (valid) FRAME_TO_PAGE[PAGE_TABLE[page_number]] == page_number
 char MEMORY[MEM_SIZE];
 char *LOGIC_MEMORY;
 int next_frame_ptr = 0; // next beginning position
 
 int tlb_item_count = 0; // # valid entries in TLB
 int next_tlb_victim = 0;
-int next_memory_victim = 0;
 
 int page_fault_count = 0;
-int page_replacement_count = 0;
 int tlb_hit_count = 0;
 int instruction_count = 0;
 
 char line[10]; // read lines from the file
 
 char in_filename[MAX_FILENAME];
-char out_filename[] = "fifo_fifo.txt";
+char out_filename[] = "fifo_none.txt";
 char store_filename[] = "BACKING_STORE.bin";
 
 int get_page_number(int address);
@@ -50,7 +45,6 @@ void initialize();
 int consult_tlb(int page_number);
 void update_tlb(int page_number, int frame_number);
 int consult_page_table(int page_number);
-int is_memory_valid(int page_number);
 void load_to_memory(int page_number);
 
 
@@ -126,7 +120,6 @@ void initialize(){
 	for (int i = 0; i < N_TLB_ENTRY; ++i){
 		TLB[i][0] = -1;
 		TLB[i][1] = -1;
-		TLB[i][2] = 0;
 	}
 	for (int i = 0; i < N_PAGE_TABLE_ENTRY; ++i){
 		PAGE_TABLE[i] = -1;
@@ -134,45 +127,22 @@ void initialize(){
 	next_frame_ptr = 0;
 }
 
-int is_memory_valid(int page_number){
-	if (FRAME_TO_PAGE[PAGE_TABLE[page_number]] == page_number){
-		return 1;
-	}
-	return 0;
-}
-
 int consult_page_table(int page_number){
 	if (PAGE_TABLE[page_number] == -1){
 		page_fault_count += 1;
-		return -1;
-	}
-	if (is_memory_valid(page_number) == 0){
-		page_fault_count += 1;
-		return -1;
 	}
 	return PAGE_TABLE[page_number];
 }
 
-
-
 void load_to_memory(int page_number){
-	if (next_frame_ptr < N_FRAME){
-		PAGE_TABLE[page_number] = next_frame_ptr;
-		FRAME_TO_PAGE[next_frame_ptr] = page_number;
-	    memcpy(MEMORY + next_frame_ptr * PAGE_FRAME_SIZE, LOGIC_MEMORY + page_number * PAGE_FRAME_SIZE, PAGE_FRAME_SIZE);
-	    next_frame_ptr += 1;
-	}
-	else {
-		PAGE_TABLE[page_number] = next_memory_victim;
-		FRAME_TO_PAGE[next_memory_victim] = page_number;
-		memcpy(MEMORY + next_memory_victim * PAGE_FRAME_SIZE, LOGIC_MEMORY + page_number * PAGE_FRAME_SIZE, PAGE_FRAME_SIZE);
-		next_memory_victim = (next_memory_victim + 1) % N_FRAME;
-	}
+	PAGE_TABLE[page_number] = next_frame_ptr;
+	memcpy(MEMORY + next_frame_ptr * PAGE_FRAME_SIZE, LOGIC_MEMORY + page_number * PAGE_FRAME_SIZE, PAGE_FRAME_SIZE);
+	next_frame_ptr += 1;
 }
 
 int consult_tlb(int page_number){
 	for (int i = 0; i < N_TLB_ENTRY; ++i){
-		if (TLB[i][2] == 1 && TLB[i][0] == page_number){
+		if (TLB[i][0] == page_number){
 			tlb_hit_count += 1;
 			return TLB[i][1];
 		}
@@ -184,18 +154,11 @@ void update_tlb(int page_number, int frame_number){
 	if (tlb_item_count < N_TLB_ENTRY){
 		TLB[tlb_item_count][0] = page_number;
 	    TLB[tlb_item_count][1] = frame_number;
-	    TLB[tlb_item_count][2] = 1;
 		tlb_item_count += 1;
 	}
 	else {
-		for (int i = 0; i < N_TLB_ENTRY; ++i){
-			if (TLB[i][0] == page_number){
-				TLB[i][2] = 0;
-			}
-		}
 		TLB[next_tlb_victim][0] = page_number;
 	    TLB[next_tlb_victim][1] = frame_number;
-	    TLB[next_tlb_victim][2] = 1;
 		next_tlb_victim = (next_tlb_victim + 1) % N_TLB_ENTRY;
 	}
 }
